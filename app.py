@@ -206,7 +206,7 @@ if prod_file and layout_file:
             st.download_button(
                 label="下载落位信息 (Excel)",
                 data=excel_buffer,
-                file_name="shelf_layout_info.xlsx",
+                file_name=f"{generator.layout_df['template_name'].iloc[0]}_布局图.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 

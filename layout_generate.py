@@ -220,8 +220,8 @@ class LayoutGenerator:
         :param layout_file: 落位明细清单路径或文件对象
         """
         # ==========================================查找文件==========================================
+        dir_path = '/Users/wujingjun/PycharmProjects/displayproj/src/AlgorithmFunc/GeneticAlg/test/get_layout/layout_test_file'
         if product_file is None or layout_file is None:
-            dir_path = '/Users/wujingjun/PycharmProjects/displayproj/src/AlgorithmFunc/GeneticAlg/test/get_layout/layout_test_file'
             files = glob.glob(os.path.join(dir_path, "*.xlsx"))
             for file in files:
                 filename = os.path.basename(file)
@@ -231,7 +231,7 @@ class LayoutGenerator:
                     layout_file = file
 
         if not product_file or not layout_file:
-            raise FileNotFoundError(f"在 {self.dir_path} 中未找到'商品资料表'或'落位明细清单'文件")
+            raise FileNotFoundError(f"在 {dir_path} 中未找到'商品资料表'或'落位明细清单'文件")
         print(f"读取商品资料表: {product_file}")
         print(f"读取落位明细清单: {layout_file}")
 
