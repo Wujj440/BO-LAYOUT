@@ -34,13 +34,15 @@ if 'default_dims' not in st.session_state:
     st.session_state.default_dims = []
 
 # Default attributes list
-DEFAULT_ATTRS = ['项目中类', '项目小类', '项目细类', '品牌名称', 'spu名称', '项目商品类别']
+DEFAULT_ATTRS = ['项目中类', '项目小类', '项目细类', '品牌名称', 'spu名称', '项目商品类别','IP']
 DEFAULT_ATTRS_MAPPING = {'项目中类': "item_mid_category",
                          '项目小类': "item_small_category",
                          '项目细类': "item_tiny_category",
                          '品牌名称': "brand_name",
                          'spu名称': "spu_product_name",
-                         '项目商品类别': "item_sale_class_code"}
+                         '项目商品类别': "item_sale_class_code",
+                         'IP': "ip",
+                         }
 
 if prod_file and layout_file:
     # Initialize Generator

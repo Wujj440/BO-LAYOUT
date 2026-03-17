@@ -70,7 +70,10 @@ def _get_chinese_font():
     # 3) 按字体名查找
     for _name in (
             'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'SimHei', 'Microsoft YaHei', 'STHeiti',
-            'Arial Unicode MS'):
+            'Arial Unicode MS','PingFang SC', 'Heiti SC',  # macOS 自带
+        'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei', 'Noto Sans CJK SC',
+        'SimHei', 'Microsoft YaHei', 'STHeiti', 'Arial Unicode MS'):
+
         try:
             _f = font_manager.FontProperties(family=_name)
             _path = font_manager.findfont(_f)
@@ -139,7 +142,7 @@ class LayoutGenerator:
         # self.dir_path = dir_path
         self.required_product_cols = [
             "商品编码", "项目商品类别", "项目大类", "项目中类",
-            "项目小类", "项目细类", "品牌名称", "SPU商品名称"
+            "项目小类", "项目细类", "品牌名称", "SPU商品名称","IP"
         ]
         self.required_layout_cols = [
             "货架序号", "层数", "层组件顺序", "位置", "垫高位置", "商品编码", "货架模板名称"
@@ -152,7 +155,8 @@ class LayoutGenerator:
             "项目小类": "item_small_category",
             "项目细类": "item_tiny_category",
             "品牌名称": "brand_name",
-            "SPU商品名称": "spu_product_name"
+            "SPU商品名称": "spu_product_name",
+            "IP": "ip"
         }
         self.layout_col_mapping = {
             "*货架序号": "shelf_nums",
@@ -220,7 +224,7 @@ class LayoutGenerator:
         :param layout_file: 落位明细清单路径或文件对象
         """
         # ==========================================查找文件==========================================
-        dir_path = '/Users/wujingjun/PycharmProjects/displayproj/src/AlgorithmFunc/GeneticAlg/test/get_layout/layout_test_file'
+        dir_path = '/Users/wujingjun/Desktop/test_20260317'
         if product_file is None or layout_file is None:
             files = glob.glob(os.path.join(dir_path, "*.xlsx"))
             for file in files:
@@ -372,9 +376,10 @@ class LayoutGenerator:
                 fig = item
                 fig.canvas.draw()
                 w, h = fig.canvas.get_width_height()
-                buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
-                buf.shape = (h, w, 4)
-                buf = np.roll(buf, 3, axis=2)  # ARGB -> RGBA
+                # buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+                # buf.shape = (h, w, 4)
+                # buf = np.roll(buf, 3, axis=2)  # ARGB -> RGBA
+                buf = np.array(fig.canvas.buffer_rgba())
                 images.append(buf)
                 plt.close(fig)
             elif isinstance(item, np.ndarray):
@@ -459,38 +464,41 @@ class LayoutGenerator:
         unique_values = df['dimension_value'].unique()
         colors = cm.get_cmap('tab20', len(unique_values))
         val_color_map = {val: colors(i) for i, val in enumerate(unique_values)}
-        shelf_gap = 50
-        block_height = 400
-        block_width = 1000
-        layer_width = max(posids) * 1000
+        shelf_gap = 20
+        block_height = 200
+        block_width = 200
+        layer_width = min(max(posids) * 1000, 1000)
+        # layer_width = max(posids) * 1000
         layer_height = 400
-        shelf_height = layer_height * max(layers)
-        shelf_width = layer_width * len(shelves)
+        shelf_height = min(layer_height * max(layers),2000)
+        shelf_width = layer_width 
         # 生成各层的图
         shelf_images = []
         for shelf_id in shelves:
             shelf_layer_images = []
             for layer_id in layers:
-                print('如果layer_df为空，则生成一个空图，宽度为layer_width,高度为layer_height')
                 layer_df = df[(df['shelf_nums'].astype(int) == shelf_id) & (df['layer_nums'].astype(int) == layer_id)]
                 # layer_df = df[(df['shelf_nums'].astype(int) == 3) & (df['layer_nums'].astype(int) == 4)]
                 if len(layer_df) == 0:
-                    layer_img = np.ones((layer_height, layer_width, 3), dtype=np.uint8) * 255
+                    print('layer_df为空，则生成一个空图，宽度为layer_width,高度为layer_height')
+                    layer_img = np.ones((layer_height, layer_width, 4), dtype=np.uint8) * 255
                     shelf_layer_images.append(layer_img)
                     continue
                 print(
-                    '生成一张宽为layer_width,高为layer_height的canvas，根据pos_id分配该层的位置，并在每个pos_id上增加value的值')
+                    f'生成一张宽为{layer_width},高为{layer_height}的canvas，根据pos_id分配该层的位置，并在每个pos_id上增加value的值')
                 block_id_list = sorted(list(set(layer_df['pos_id'].tolist())))  # ['1_3', '3_4', '4_5']
                 layer_canvas = []
                 for block_id in block_id_list:
+                    print(f'生成货架{shelf_id}层{layer_id}第{block_id}的图')
                     s_idx, e_idx = map(int, block_id.split('_'))
                     block_values = layer_df[layer_df['pos_id'] == block_id] \
                         .sort_values('dimension_name')['dimension_value'].tolist()
                     text = "\n".join([str(i) for i in block_values])
                     color = val_color_map[block_values[0]]
                     # text = '测试\n测试'
-                    print('生成一张图，宽度为block_width*(e_idx-s_idx),高度为block_height，并且在图上增加text')
-                    fig = self.draw_block_canvas(s_idx, e_idx, block_width=50, block_height=80, text=text,
+                    # print('生成一张图，宽度为block_width*(e_idx-s_idx),高度为block_height，并且在图上增加text')
+                    fig = self.draw_block_canvas(s_idx, e_idx, block_width=block_width, 
+                    block_height=block_height, text=text,
                                                  background_color=color)
                     layer_canvas.append(fig)
 
@@ -509,7 +517,7 @@ class LayoutGenerator:
                 target_w = max(img.shape[1] for img in shelf_layer_images)
                 resized_images = []
                 for img in shelf_layer_images:
-                    resized_images.append(self._resize_image(img, target_width=target_w))
+                    resized_images.append(self._resize_image(img, target_width=layer_width))
 
                 shelf_img = self._combine_images(resized_images, axis=0)
 
@@ -520,6 +528,8 @@ class LayoutGenerator:
                     plt.imshow(shelf_img)
                     plt.axis('off')
                     plt.title(f"Shelf {shelf_id} Layer {layer_id}")
+                    # fig.savefig(f"shelf_{shelf_id}.png", bbox_inches='tight', dpi=150)
+                    # plt.close(fig)
                     # plt.show()
                     # print(1)
             else:
@@ -539,7 +549,7 @@ class LayoutGenerator:
     def get_dimension_info(self, default_dimension_name=['item_mid_category', 'item_sale_class_code'],
                            finetune_layer_dimension=[(1, 1, ['brand_name'])]):
         """生成每个位置的维度信息，支持默认维度和层级微调"""
-
+        # default_dimension_name = ['ip', 'item_sale_class_code']
         def assign_dimension_id(row):
             dimension_name_list = eval(row['dimension_name_list'])
             value_output = []
@@ -597,6 +607,5 @@ class LayoutGenerator:
 
 
 if __name__ == "__main__":
-    folder_path = '/Users/wujingjun/PycharmProjects/displayproj/src/AlgorithmFunc/GeneticAlg/test/get_layout/layout_test_file'
     generator = LayoutGenerator()
     generator.run()
