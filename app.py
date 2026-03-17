@@ -32,6 +32,8 @@ if 'current_img' not in st.session_state:
     st.session_state.current_img = None
 if 'default_dims' not in st.session_state:
     st.session_state.default_dims = []
+if 'uploaded_file_ids' not in st.session_state:
+    st.session_state.uploaded_file_ids = (None, None)
 
 # Default attributes list
 DEFAULT_ATTRS = ['项目中类', '项目小类', '项目细类', '品牌名称', 'spu名称', '项目商品类别','IP']
@@ -45,13 +47,17 @@ DEFAULT_ATTRS_MAPPING = {'项目中类': "item_mid_category",
                          }
 
 if prod_file and layout_file:
-    # Initialize Generator
+    current_file_ids = (prod_file.file_id, layout_file.file_id)
+    if current_file_ids != st.session_state.uploaded_file_ids:
+        st.session_state.generator = None
+        st.session_state.current_img = None
+        st.session_state.fine_tuning_list = []
+        st.session_state.default_dims = []
+        st.session_state.uploaded_file_ids = current_file_ids
+
     if st.session_state.generator is None:
         with st.spinner("正在加载数据..."):
             try:
-                # LayoutGenerator expects file paths or file-like objects for read_excel
-                # Since we modified data_prepare to accept arguments, we pass them directly.
-                # Note: read_excel supports file-like objects (BytesIO) which st.file_uploader returns.
                 generator = LayoutGenerator()
                 generator.data_prepare(prod_file, layout_file)
                 st.session_state.generator = generator

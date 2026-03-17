@@ -3,11 +3,16 @@ import os
 import pandas as pd
 import glob
 import re
+import threading
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.cm as cm
 from matplotlib import font_manager
+
+_plot_lock = threading.Lock()
 
 # 显式指定中文字体，绘图时用 _CHINESE_FONT_PATH 创建 FontProperties 以保证中文正常显示
 _CHINESE_FONT_PROPS = None
@@ -451,7 +456,10 @@ class LayoutGenerator:
     def draw_layout(self):
         """生成用于绘图的聚合数据"""
         if self.layout_info_final is None: raise ValueError("请先执行 get_dimension_info")
+        with _plot_lock:
+            return self._draw_layout_impl()
 
+    def _draw_layout_impl(self):
         # 1. 准备数据
         df = self.layout_info_final.copy()
         shelves = sorted(list(set([int(i) for i in df['shelf_nums']])))
@@ -523,17 +531,8 @@ class LayoutGenerator:
 
                 if shelf_img is not None:
                     shelf_images.append(shelf_img)
-                    # 显示货架图像
-                    plt.figure(figsize=(10, 10))  # 尺寸可以根据需要调整
-                    plt.imshow(shelf_img)
-                    plt.axis('off')
-                    plt.title(f"Shelf {shelf_id} Layer {layer_id}")
-                    # fig.savefig(f"shelf_{shelf_id}.png", bbox_inches='tight', dpi=150)
-                    # plt.close(fig)
-                    # plt.show()
-                    # print(1)
             else:
-                shelf_images.append(np.ones((shelf_height, shelf_width, 3), dtype=np.uint8) * 255)
+                shelf_images.append(np.ones((shelf_height, shelf_width, 4), dtype=np.uint8) * 255)
         print(
             '还需要把多个shelf_id拼成一行并显示，每个shelf_id的宽度为shelf_width，高度为shelf_height,要进行reshape，并且shelf之间的空隙为shelf_gap,并显示')
 
@@ -542,9 +541,9 @@ class LayoutGenerator:
             if shelf_img is not None:
                 return shelf_img
             else:
-                return np.ones((shelf_height, shelf_width, 3), dtype=np.uint8) * 255
+                return np.ones((shelf_height, shelf_width, 4), dtype=np.uint8) * 255
         else:
-            return np.ones((shelf_height, shelf_width, 3), dtype=np.uint8) * 255
+            return np.ones((shelf_height, shelf_width, 4), dtype=np.uint8) * 255
 
     def get_dimension_info(self, default_dimension_name=['item_mid_category', 'item_sale_class_code'],
                            finetune_layer_dimension=[(1, 1, ['brand_name'])]):
